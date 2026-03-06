@@ -22,7 +22,7 @@ while True:
 
     try:
 
-        r = requests.get(API_URL, params={"token": TOKEN})
+        r = requests.get(API_URL, params={"token": TOKEN}, timeout=20)
         data = r.json()
 
         if "data" not in data:
@@ -45,15 +45,13 @@ while True:
 
             sent.add(unique)
 
-            # OTP extract
-            otp_match = re.search(r"\d{3}-\d{3}", message)
+            otp_match = re.search(r"\d{3}-\d{3}", str(message))
 
             if otp_match:
                 otp = otp_match.group()
             else:
-                otp = "OTP"
+                continue
 
-            # service tag
             if "whatsapp" in service:
                 tag = "#WS"
             elif "telegram" in service:
@@ -61,15 +59,13 @@ while True:
             else:
                 tag = "#SMS"
 
-            # country detect
             try:
                 numobj = phonenumbers.parse("+" + number)
                 country = geocoder.description_for_number(numobj, "en")
             except:
                 country = "Unknown"
 
-            text = f"""
-📩 NEW OTP RECIEVED
+            text = f"""📩 NEW MESSAGE RECIEVED
 
 {tag} 🟢 {country}
 +{number}
@@ -90,15 +86,22 @@ while True:
 
             reply_markup = InlineKeyboardMarkup(keyboard)
 
-            bot.send_message(
-                chat_id=CHAT_ID,
-                text=text,
-                reply_markup=reply_markup
-            )
+            try:
 
-            print("OTP Sent:", otp)
+                bot.send_message(
+                    chat_id=CHAT_ID,
+                    text=text,
+                    reply_markup=reply_markup
+                )
 
-    except Exception as e:
-        print("Error:", e)
+                print("✅ OTP Forwarded:", otp)
+
+            except Exception as tg_error:
+
+                print("Telegram Error:", tg_error)
+
+    except Exception as api_error:
+
+        print("API Error:", api_error)
 
     time.sleep(5)
